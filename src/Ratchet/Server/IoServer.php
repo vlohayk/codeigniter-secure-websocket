@@ -2,6 +2,7 @@
 namespace Ratchet\Server;
 use Ratchet\MessageComponentInterface;
 use React\EventLoop\LoopInterface;
+use React\Socket\SecureServer;
 use React\Socket\ServerInterface;
 use React\EventLoop\Factory as LoopFactory;
 use React\Socket\Server as Reactor;
@@ -54,10 +55,17 @@ class IoServer {
      * @param  string                             $address    The address to receive sockets on (0.0.0.0 means receive connections from any)
      * @return IoServer
      */
-    public static function factory(MessageComponentInterface $component, $port = 80, $address = '0.0.0.0') {
-        $loop   = LoopFactory::create();
+    public static function factory(MessageComponentInterface $component, $port = 80, $address = '0.0.0.0')
+    {
+        $loop = LoopFactory::create();
         $socket = new Reactor($address . ':' . $port, $loop);
-
+// Set up our WebSocket server for clients wanting real-time updates
+        $socket = new SecureServer($socket, $loop, array(
+            'local_cert' => '/fullchain.pem', // path to your cert
+            'local_pk' => '/privkey.pem', // path to your server private key
+            'allow_self_signed' => TRUE, // Allow self signed certs (should be false in production)
+            'verify_peer' => FALSE
+        ));
         return new static($component, $socket, $loop);
     }
 
